@@ -1,0 +1,8 @@
+{
+	"name": "wikioasis-safety",
+	"private": true,
+	"description": "Node tests for the WikiOasisSafety MediaWiki extension",
+	"scripts": {
+		"test": "node tests/node/files.test.js && node tests/node/render.test.js && node tests/node/init.test.js && node tests/node/home.test.js && node tests/node/parity.test.js"
+	}
+}

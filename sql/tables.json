@@ -1,0 +1,501 @@
+[
+	{
+		"name": "wos_case",
+		"comment": "Mirror of the cases filed from the farm to avoid querying TSPortal to remove an attack vector.",
+		"columns": [
+			{
+				"name": "wosc_id",
+				"type": "integer",
+				"options": {
+					"unsigned": true,
+					"notnull": true,
+					"autoincrement": true
+				}
+			},
+			{
+				"name": "wosc_reference",
+				"type": "binary",
+				"options": {
+					"notnull": true,
+					"length": 32
+				}
+			},
+			{
+				"name": "wosc_type",
+				"type": "binary",
+				"options": {
+					"notnull": true,
+					"length": 16
+				}
+			},
+			{
+				"name": "wosc_central_id",
+				"type": "bigint",
+				"options": {
+					"unsigned": true,
+					"notnull": true
+				}
+			},
+			{
+				"name": "wosc_user_name",
+				"type": "binary",
+				"options": {
+					"notnull": true,
+					"length": 255
+				}
+			},
+			{
+				"name": "wosc_subject",
+				"type": "binary",
+				"options": {
+					"notnull": true,
+					"length": 255
+				}
+			},
+			{
+				"name": "wosc_summary",
+				"type": "blob",
+				"options": {
+					"notnull": false,
+					"length": 65530
+				}
+			},
+			{
+				"name": "wosc_status",
+				"type": "binary",
+				"options": {
+					"notnull": true,
+					"length": 24
+				}
+			},
+			{
+				"name": "wosc_about",
+				"type": "blob",
+				"options": {
+					"notnull": false,
+					"length": 65530
+				}
+			},
+			{
+				"name": "wosc_category",
+				"type": "blob",
+				"options": {
+					"notnull": false,
+					"length": 65530
+				}
+			},
+			{
+				"name": "wosc_appeal",
+				"type": "blob",
+				"options": {
+					"notnull": false,
+					"length": 65530
+				}
+			},
+			{
+				"name": "wosc_filed",
+				"type": "mwtimestamp",
+				"options": {
+					"notnull": true
+				}
+			},
+			{
+				"name": "wosc_updated",
+				"type": "mwtimestamp",
+				"options": {
+					"notnull": true
+				}
+			}
+		],
+		"indexes": [
+			{
+				"name": "wos_case_reference",
+				"columns": [
+					"wosc_reference"
+				],
+				"unique": true
+			},
+			{
+				"name": "wos_case_user",
+				"columns": [
+					"wosc_central_id",
+					"wosc_filed"
+				],
+				"unique": false
+			}
+		],
+		"pk": [
+			"wosc_id"
+		]
+	},
+	{
+		"name": "wos_comment",
+		"columns": [
+			{
+				"name": "wosm_id",
+				"type": "integer",
+				"options": {
+					"unsigned": true,
+					"notnull": true,
+					"autoincrement": true
+				}
+			},
+			{
+				"name": "wosm_case",
+				"type": "integer",
+				"options": {
+					"unsigned": true,
+					"notnull": true
+				}
+			},
+			{
+				"name": "wosm_portal_id",
+				"type": "integer",
+				"options": {
+					"unsigned": true,
+					"notnull": false
+				}
+			},
+			{
+				"name": "wosm_author",
+				"type": "binary",
+				"options": {
+					"notnull": true,
+					"length": 16
+				}
+			},
+			{
+				"name": "wosm_author_name",
+				"type": "binary",
+				"options": {
+					"notnull": false,
+					"length": 255
+				}
+			},
+			{
+				"name": "wosm_text",
+				"type": "blob",
+				"options": {
+					"notnull": true,
+					"length": 65530
+				}
+			},
+			{
+				"name": "wosm_date",
+				"type": "mwtimestamp",
+				"options": {
+					"notnull": true
+				}
+			}
+		],
+		"indexes": [
+			{
+				"name": "wos_comment_portal",
+				"columns": [
+					"wosm_case",
+					"wosm_portal_id"
+				],
+				"unique": true
+			},
+			{
+				"name": "wos_comment_case",
+				"columns": [
+					"wosm_case",
+					"wosm_date"
+				],
+				"unique": false
+			}
+		],
+		"pk": [
+			"wosm_id"
+		]
+	},
+	{
+		"name": "wos_action",
+		"columns": [
+			{
+				"name": "wosa_id",
+				"type": "integer",
+				"options": {
+					"unsigned": true,
+					"notnull": true,
+					"autoincrement": true
+				}
+			},
+			{
+				"name": "wosa_reference",
+				"type": "binary",
+				"options": {
+					"notnull": true,
+					"length": 32
+				}
+			},
+			{
+				"name": "wosa_central_id",
+				"type": "bigint",
+				"options": {
+					"unsigned": true,
+					"notnull": true
+				}
+			},
+			{
+				"name": "wosa_user_name",
+				"type": "binary",
+				"options": {
+					"notnull": true,
+					"length": 255
+				}
+			},
+			{
+				"name": "wosa_type",
+				"type": "binary",
+				"options": {
+					"notnull": true,
+					"length": 32
+				}
+			},
+			{
+				"name": "wosa_label",
+				"type": "binary",
+				"options": {
+					"notnull": true,
+					"length": 255
+				}
+			},
+			{
+				"name": "wosa_scope",
+				"type": "binary",
+				"options": {
+					"notnull": false,
+					"length": 255
+				}
+			},
+			{
+				"name": "wosa_reason",
+				"type": "blob",
+				"options": {
+					"notnull": true,
+					"length": 65530
+				}
+			},
+			{
+				"name": "wosa_issued",
+				"type": "mwtimestamp",
+				"options": {
+					"notnull": true
+				}
+			},
+			{
+				"name": "wosa_expires",
+				"type": "mwtimestamp",
+				"options": {
+					"notnull": false
+				}
+			},
+			{
+				"name": "wosa_active",
+				"type": "mwtinyint",
+				"options": {
+					"notnull": true,
+					"default": 1
+				}
+			},
+			{
+				"name": "wosa_appealable",
+				"type": "mwtinyint",
+				"options": {
+					"notnull": true,
+					"default": 1
+				}
+			}
+		],
+		"indexes": [
+			{
+				"name": "wos_action_reference",
+				"columns": [
+					"wosa_reference"
+				],
+				"unique": true
+			},
+			{
+				"name": "wos_action_user",
+				"columns": [
+					"wosa_central_id",
+					"wosa_issued"
+				],
+				"unique": false
+			}
+		],
+		"pk": [
+			"wosa_id"
+		]
+	},
+	{
+		"name": "wos_standing",
+		"columns": [
+			{
+				"name": "woss_user_name",
+				"type": "binary",
+				"options": {
+					"notnull": true,
+					"length": 255
+				}
+			},
+			{
+				"name": "woss_central_id",
+				"type": "bigint",
+				"options": {
+					"unsigned": true,
+					"notnull": false
+				}
+			},
+			{
+				"name": "woss_standing",
+				"type": "binary",
+				"options": {
+					"notnull": true,
+					"length": 32
+				}
+			},
+			{
+				"name": "woss_banned",
+				"type": "mwtinyint",
+				"options": {
+					"notnull": true,
+					"default": 0
+				}
+			},
+			{
+				"name": "woss_reference",
+				"type": "binary",
+				"options": {
+					"notnull": false,
+					"length": 32
+				}
+			},
+			{
+				"name": "woss_reason",
+				"type": "blob",
+				"options": {
+					"notnull": false,
+					"length": 65530
+				}
+			},
+			{
+				"name": "woss_expires",
+				"type": "mwtimestamp",
+				"options": {
+					"notnull": false
+				}
+			},
+			{
+				"name": "woss_appealable",
+				"type": "mwtinyint",
+				"options": {
+					"notnull": true,
+					"default": 1
+				}
+			},
+			{
+				"name": "woss_updated",
+				"type": "mwtimestamp",
+				"options": {
+					"notnull": true
+				}
+			}
+		],
+		"indexes": [
+			{
+				"name": "wos_standing_central",
+				"columns": [
+					"woss_central_id"
+				],
+				"unique": false
+			}
+		],
+		"pk": [
+			"woss_user_name"
+		]
+	},
+	{
+		"name": "wos_outbox",
+		"columns": [
+			{
+				"name": "woso_id",
+				"type": "integer",
+				"options": {
+					"unsigned": true,
+					"notnull": true,
+					"autoincrement": true
+				}
+			},
+			{
+				"name": "woso_wiki",
+				"type": "binary",
+				"options": {
+					"notnull": true,
+					"length": 64
+				}
+			},
+			{
+				"name": "woso_action",
+				"type": "binary",
+				"options": {
+					"notnull": true,
+					"length": 32
+				}
+			},
+			{
+				"name": "woso_payload",
+				"type": "blob",
+				"options": {
+					"notnull": true,
+					"length": 16777215
+				}
+			},
+			{
+				"name": "woso_attempts",
+				"type": "smallint",
+				"options": {
+					"unsigned": true,
+					"notnull": true,
+					"default": 0
+				}
+			},
+			{
+				"name": "woso_created",
+				"type": "mwtimestamp",
+				"options": {
+					"notnull": true
+				}
+			},
+			{
+				"name": "woso_next",
+				"type": "mwtimestamp",
+				"options": {
+					"notnull": false
+				}
+			},
+			{
+				"name": "woso_error",
+				"type": "blob",
+				"options": {
+					"notnull": false,
+					"length": 65530
+				}
+			}
+		],
+		"indexes": [
+			{
+				"name": "wos_outbox_next",
+				"columns": [
+					"woso_next"
+				],
+				"unique": false
+			}
+		],
+		"pk": [
+			"woso_id"
+		]
+	}
+]

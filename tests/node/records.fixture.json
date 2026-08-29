@@ -1,0 +1,166 @@
+{
+	"reports": [
+		{
+			"id": "TS-2026-0481",
+			"subject": "Harassment across several talk pages",
+			"filed": "2026-07-14T09:22:00Z",
+			"updated": "2026-08-11T16:05:00Z",
+			"status": "in-review",
+			"about": [
+				"User:Halcyon Reed",
+				"Talk:Pumice"
+			],
+			"summary": "Repeated personal comments after being asked to stop, on three article talk pages and my own user talk page.",
+			"comments": [
+				{
+					"author": "you",
+					"name": null,
+					"date": "2026-07-14T09:22:00Z",
+					"text": "Filed with links to the four diffs listed above."
+				},
+				{
+					"author": "staff",
+					"name": "M. Okonjo (Trust & Safety)",
+					"date": "2026-07-18T11:40:00Z",
+					"text": "Thank you for the report. We have it and are reading through the diffs. You do not need to do anything further for now; we will ask here if we need more."
+				},
+				{
+					"author": "you",
+					"name": null,
+					"date": "2026-08-02T20:13:00Z",
+					"text": "It happened again yesterday on Talk:Pumice, same pattern."
+				},
+				{
+					"author": "staff",
+					"name": "M. Okonjo (Trust & Safety)",
+					"date": "2026-08-11T16:05:00Z",
+					"text": "Noted, and added to the case. This is still open with us."
+				}
+			]
+		},
+		{
+			"id": "TS-2026-0512",
+			"subject": "Spam links added by a new account",
+			"filed": "2026-08-03T14:47:00Z",
+			"updated": "2026-08-05T08:30:00Z",
+			"status": "action-taken",
+			"about": [
+				"User:Bright Kettle Media"
+			],
+			"summary": "Twelve outbound links to the same shop added across unrelated articles.",
+			"comments": [
+				{
+					"author": "staff",
+					"name": "R. Vasquez (Trust & Safety)",
+					"date": "2026-08-05T08:30:00Z",
+					"text": "The account has been blocked and the links removed. Thank you for flagging it -- this one was clear cut."
+				}
+			]
+		},
+		{
+			"id": "TS-2026-0298",
+			"subject": "Off-wiki contact after a content dispute",
+			"filed": "2026-05-21T07:10:00Z",
+			"updated": "2026-06-09T12:00:00Z",
+			"status": "closed",
+			"about": [
+				"User:Quiet Marlin"
+			],
+			"summary": "Unwanted email after a disagreement on Talk:Basalt.",
+			"comments": [
+				{
+					"author": "staff",
+					"name": "M. Okonjo (Trust & Safety)",
+					"date": "2026-06-09T12:00:00Z",
+					"text": "We spoke to the other party and they have agreed not to make contact again. Closing this, but reopen it by replying here if anything changes."
+				}
+			]
+		},
+		{
+			"id": "TS-2026-0601",
+			"type": "appeal",
+			"subject": "Appeal against Block (AC-2026-0119)",
+			"filed": "2026-08-12T10:00:00Z",
+			"updated": "2026-08-19T09:00:00Z",
+			"status": "action-taken",
+			"about": [],
+			"summary": "I was not the one making those edits and I would like this looked at again.",
+			"appeal": {
+				"action": {
+					"reference": "AC-2026-0119",
+					"label": "Block",
+					"type": "block",
+					"reason": "Persistent addition of promotional links.",
+					"issued": "2026-08-01T12:00:00Z",
+					"expires": null,
+					"in_force": false,
+					"lifted": "2026-08-19T09:00:00Z",
+					"where": "pumicewiki, oasiswiki"
+				},
+				"outcome": "granted",
+				"decided": "2026-08-19T09:00:00Z"
+			},
+			"comments": []
+		},
+		{
+			"id": "TS-2026-0644",
+			"type": "appeal",
+			"subject": "Appeal",
+			"filed": "2026-08-20T08:00:00Z",
+			"updated": "2026-08-20T08:00:00Z",
+			"status": "received",
+			"about": [],
+			"summary": "I have been blocked and I do not know why.",
+			"appeal": {
+				"action": null,
+				"outcome": null,
+				"decided": null
+			},
+			"comments": [
+				{
+					"author": "staff",
+					"name": null,
+					"date": "2026-08-20T08:00:00Z",
+					"text": "Your appeal has reached Trust & Safety and is waiting to be read. You do not need to do anything further for now."
+				}
+			]
+		}
+	],
+	"account": {
+		"standing": "restricted",
+		"registered": "2019-03-02T00:00:00Z",
+		"actions": [
+			{
+				"id": "AC-2026-0119",
+				"type": "Interaction ban",
+				"scope": "WikiOasis (all projects)",
+				"issued": "2026-06-30T10:00:00Z",
+				"expires": "2026-12-30T10:00:00Z",
+				"active": true,
+				"reason": "Continued disputes with another editor after mediation. You may edit normally; you may not reply to or about that editor.",
+				"appealable": true
+			},
+			{
+				"id": "AC-2025-0842",
+				"type": "Formal warning",
+				"scope": "oasis.example",
+				"issued": "2025-11-12T15:20:00Z",
+				"expires": null,
+				"active": true,
+				"reason": "Edit summaries directed at another contributor. A warning stays on file but places no limit on your editing.",
+				"appealable": true
+			},
+			{
+				"id": "AC-2024-0317",
+				"type": "Partial block",
+				"scope": "oasis.example -- Article namespace",
+				"issued": "2024-04-18T08:00:00Z",
+				"expires": "2024-05-18T08:00:00Z",
+				"active": false,
+				"reason": "Edit warring on Basalt. Expired on its own; no further action was taken.",
+				"appealable": false
+			}
+		]
+	},
+	"hasAnonymous": true
+}

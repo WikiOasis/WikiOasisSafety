@@ -1,0 +1,240 @@
+@import 'mediawiki.skin.variables.less';
+
+.client-js .wikioasis-safety-nojs {
+	display: none;
+}
+
+.client-nojs {
+	#wikioasis-safety-home,
+	#wikioasis-safety-wizard,
+	#wikioasis-safety-app {
+		display: none;
+	}
+}
+
+.wikioasis-safety-nojs-intro {
+	max-width: 44rem;
+	color: @color-subtle;
+}
+
+.wikioasis-safety-nojs-grid {
+	display: grid;
+	grid-template-columns: repeat( 6, 1fr );
+	gap: @spacing-100;
+	margin: @spacing-150 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.wikioasis-safety-nojs-cell {
+	display: flex;
+	min-width: 0;
+}
+
+@media ( max-width: 50rem ) {
+	.wikioasis-safety-nojs-grid {
+		grid-template-columns: repeat( 2, 1fr );
+	}
+}
+
+@media ( max-width: 32rem ) {
+	.wikioasis-safety-nojs-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+.wikioasis-safety-nojs-card {
+	display: flex;
+	flex-direction: column;
+	gap: @spacing-25;
+	box-sizing: border-box;
+	width: 100%;
+	min-width: 0;
+	border: @border-width-base solid @border-color-base;
+	border-radius: @border-radius-base;
+	padding: @spacing-125;
+	background-color: @background-color-base;
+	color: @color-base;
+	text-decoration: none;
+
+	&:hover {
+		background-color: @background-color-interactive-subtle;
+		border-color: @border-color-interactive;
+		color: @color-base;
+		text-decoration: none;
+	}
+
+	&--half {
+		grid-column: span 3;
+	}
+
+	&--third {
+		grid-column: span 2;
+	}
+
+	&--disabled {
+		background-color: @background-color-disabled-subtle;
+		border-color: @border-color-disabled;
+		color: @color-disabled;
+	}
+
+	&__title {
+		font-size: @font-size-medium;
+		font-weight: @font-weight-bold;
+		line-height: @line-height-medium;
+	}
+
+	&__description {
+		color: @color-subtle;
+
+		.wikioasis-safety-nojs-card--disabled & {
+			color: @color-disabled;
+		}
+	}
+
+	&__note {
+		margin-top: @spacing-25;
+		font-size: @font-size-small;
+		font-weight: @font-weight-bold;
+		color: @color-subtle;
+	}
+}
+
+@media ( max-width: 50rem ) {
+	.wikioasis-safety-nojs-card--half,
+	.wikioasis-safety-nojs-card--third {
+		grid-column: span 1;
+	}
+}
+
+.wikioasis-safety-nojs-meta,
+.wikioasis-safety-nojs-status {
+	font-size: @font-size-small;
+	color: @color-subtle;
+}
+
+.wikioasis-safety-nojs-status {
+	font-weight: @font-weight-bold;
+}
+
+.wikioasis-safety-nojs-reports {
+	display: flex;
+	flex-direction: column;
+	gap: @spacing-50;
+	margin: @spacing-100 0;
+	padding: 0;
+	list-style: none;
+}
+
+.wikioasis-safety-nojs-report {
+	display: flex;
+	flex-direction: column;
+	gap: @spacing-25;
+	border: @border-width-base solid @border-color-base;
+	border-radius: @border-radius-base;
+	padding: @spacing-75 @spacing-100;
+	color: @color-base;
+	text-decoration: none;
+
+	&:hover {
+		background-color: @background-color-interactive-subtle;
+		text-decoration: none;
+	}
+
+	&__subject {
+		font-weight: @font-weight-bold;
+	}
+}
+
+.wikioasis-safety-nojs-facts {
+	display: flex;
+	flex-wrap: wrap;
+	gap: @spacing-25 @spacing-150;
+	margin: @spacing-50 0;
+	font-size: @font-size-small;
+
+	div {
+		display: flex;
+		gap: @spacing-25;
+	}
+
+	dt {
+		color: @color-subtle;
+	}
+
+	dd {
+		margin: 0;
+	}
+}
+
+.wikioasis-safety-nojs-comments {
+	display: flex;
+	flex-direction: column;
+	gap: @spacing-75;
+	margin: @spacing-100 0;
+	padding: 0;
+	list-style: none;
+}
+
+.wikioasis-safety-nojs-comment {
+	border-left: @border-width-thick solid @border-color-subtle;
+	padding: @spacing-25 @spacing-75;
+
+	&--staff {
+		border-left-color: @border-color-progressive;
+		background-color: @background-color-progressive-subtle;
+	}
+
+	&__author {
+		margin-right: @spacing-50;
+		font-weight: @font-weight-bold;
+	}
+
+	p {
+		margin: @spacing-25 0 0;
+	}
+}
+
+/* The timeline of actions taken against an account. */
+.wikioasis-safety-nojs-timeline {
+	margin: @spacing-100 0;
+	padding: 0;
+	list-style: none;
+
+	&__entry {
+		position: relative;
+		border-left: @border-width-thick solid @border-color-subtle;
+		margin: 0;
+		padding: 0 0 @spacing-150 @spacing-100;
+
+		&:last-child {
+			padding-bottom: 0;
+		}
+
+		/* What is in force now is the entry the eye should land on first. */
+		&--active {
+			border-left-color: @border-color-warning;
+		}
+
+		h3 {
+			margin: 0;
+			padding: 0;
+			border: 0;
+			font-size: @font-size-medium;
+		}
+
+		p {
+			margin: @spacing-25 0 0;
+		}
+	}
+}
+
+.wikioasis-safety-nojs-appeal {
+	border-top: @border-width-base solid @border-color-subtle;
+	padding-top: @spacing-100;
+}
+
+.wikioasis-safety-nojs-back {
+	display: inline-block;
+	margin-bottom: @spacing-75;
+}

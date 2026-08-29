@@ -1,0 +1,32 @@
+@import 'mediawiki.skin.variables.less';
+
+#wikioasis-safety-app:empty {
+	display: none;
+}
+
+#wikioasis-safety-wizard {
+	max-width: 40rem;
+}
+
+.wikioasis-safety-result {
+	margin: @spacing-100 0;
+	padding: @spacing-75 @spacing-100;
+	border: @border-width-base @border-style-base @border-color-base;
+	border-radius: @border-radius-base;
+	background-color: @background-color-neutral-subtle;
+
+	&[ data-status='success' ] {
+		border-color: @border-color-success;
+		background-color: @background-color-success-subtle;
+	}
+
+	&[ data-status='warning' ] {
+		border-color: @border-color-warning;
+		background-color: @background-color-warning-subtle;
+	}
+
+	&[ data-status='error' ] {
+		border-color: @border-color-error;
+		background-color: @background-color-error-subtle;
+	}
+}

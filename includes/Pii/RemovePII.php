@@ -1,0 +1,218 @@
+<?php
+declare( strict_types=1 );
+
+namespace MediaWiki\Extension\WikiOasisSafety\Pii;
+
+use MediaWiki\Extension\CentralAuth\CentralAuthDatabaseManager;
+use MediaWiki\Extension\CentralAuth\GlobalRename\GlobalRenameUser;
+use MediaWiki\Extension\CentralAuth\GlobalRename\GlobalRenameUserDatabaseUpdates;
+use MediaWiki\Extension\CentralAuth\GlobalRename\GlobalRenameUserStatus;
+use MediaWiki\Extension\CentralAuth\User\CentralAuthUser;
+use MediaWiki\Extension\WikiOasisSafety\Portal\PortalClient;
+use MediaWiki\MediaWikiServices;
+use MediaWiki\Registration\ExtensionRegistry;
+use MediaWiki\User\User;
+use MediaWiki\User\UserFactory;
+use Throwable;
+
+class RemovePII {
+
+	private UserFactory $userFactory;
+	private PortalClient $portal;
+
+	public function __construct( ?UserFactory $userFactory = null, ?PortalClient $portal = null ) {
+		$this->userFactory = $userFactory
+			?? MediaWikiServices::getInstance()->getUserFactory();
+		$this->portal = $portal ?? new PortalClient();
+	}
+
+	/**
+	 * @return array<string, mixed>
+	 */
+	public function rename( string $reference, string $oldName, string $newName ): array {
+		if ( !self::isAvailable() ) {
+			return [ 'error' => 'CentralAuth is not installed' ];
+		}
+
+		$authorised = $this->authorised( $reference, $oldName, $newName );
+		if ( $authorised !== null ) {
+			return $authorised;
+		}
+
+		$oldUser = $this->userFactory->newFromName( $oldName );
+		$newUser = $this->userFactory->newFromName( $newName, UserFactory::RIGOR_CREATABLE );
+
+		if ( !$oldUser || !$newUser ) {
+			return [ 'error' => 'One of those is not a usable account name.' ];
+		}
+
+		$oldCentral = CentralAuthUser::getInstance( $oldUser );
+
+		if ( !$oldCentral->exists() ) {
+			return [ 'error' => "There is no global account named $oldName." ];
+		}
+
+		if ( $oldCentral->renameInProgress() ) {
+			return [ 'queued' => true, 'already' => true ];
+		}
+
+		try {
+			$services = MediaWikiServices::getInstance();
+			$databases = $this->service( 'CentralAuthDatabaseManager' );
+			$antiSpoof = $this->service( 'CentralAuthAntiSpoofManager' );
+
+			if ( $databases === null ) {
+				return [ 'error' => 'CentralAuth is installed but its database manager service could not be found.' ];
+			}
+
+			$rename = new GlobalRenameUser(
+				$this->actor(),
+				$oldUser,
+				$oldCentral,
+				$newUser,
+				CentralAuthUser::getInstance( $newUser ),
+				new GlobalRenameUserStatus( $databases, $newUser->getName() ),
+				$services->getJobQueueGroupFactory(),
+				new GlobalRenameUserDatabaseUpdates( $databases ),
+				$antiSpoof
+			);
+
+			$status = $rename->rename( [
+				'movepages' => false,
+				'suppressredirects' => true,
+				'reason' => $reference,
+				'force' => true,
+				'oldname' => $oldName,
+				'newname' => $newName,
+			] );
+
+			if ( !$status->isGood() ) {
+				return [ 'error' => 'CentralAuth refused the rename.' ];
+			}
+
+			return [ 'queued' => true ];
+		} catch ( Throwable $e ) {
+			return [ 'retry' => true, 'error' => $e->getMessage() ];
+		}
+	}
+
+	/**
+	 * @return array<string, mixed>
+	 */
+	public function renameStatus( string $newName ): array {
+		if ( !self::isAvailable() ) {
+			return [ 'complete' => false, 'error' => 'CentralAuth is not installed.' ];
+		}
+
+		try {
+			$databases = $this->service( 'CentralAuthDatabaseManager' );
+
+			if ( $databases === null ) {
+				return [ 'complete' => false, 'error' => 'CentralAuth\'s database manager service '
+					. 'could not be found.' ];
+			}
+
+			$statuses = ( new GlobalRenameUserStatus( $databases, $newName ) )->getStatuses();
+
+			$outstanding = array_keys( array_filter(
+				$statuses,
+				static fn ( $state ) => $state !== 'done'
+			) );
+
+			return [
+				'complete' => $outstanding === [],
+				'outstanding' => array_values( $outstanding ),
+			];
+		} catch ( Throwable $e ) {
+			return [ 'complete' => false, 'retry' => true, 'error' => $e->getMessage() ];
+		}
+	}
+
+	/**
+	 * @param list<string>|null $wikis
+	 * @return array<string, mixed>
+	 */
+	public function scrub( string $reference, string $oldName, string $newName, ?array $wikis = null ): array {
+		if ( !self::isAvailable() ) {
+			return [ 'wikis' => [], 'error' => 'CentralAuth is not installed.' ];
+		}
+
+		$authorised = $this->authorised( $reference, $oldName, $newName );
+		if ( $authorised !== null ) {
+			return $authorised;
+		}
+
+		$newCentral = CentralAuthUser::getInstanceByName( $newName );
+
+		if ( !$newCentral->exists() ) {
+			return [
+				'wikis' => [],
+				'retry' => true,
+				'error' => "The rename has not finished yet: there is no global account named $newName.",
+			];
+		}
+
+		if ( $newCentral->renameInProgress() ) {
+			return [ 'wikis' => [], 'retry' => true, 'error' => 'The rename is still running.' ];
+		}
+
+		$attached = $newCentral->listAttached();
+		$targets = $wikis === null ? $attached : array_values( array_intersect( $wikis, $attached ) );
+
+		$factory = MediaWikiServices::getInstance()->getJobQueueGroupFactory();
+
+		foreach ( $targets as $wiki ) {
+			$factory->makeJobQueueGroup( $wiki )->push( new RemovePIIJob( [
+				'reference' => $reference,
+				'oldname' => $oldName,
+				'newname' => $newName,
+			] ) );
+		}
+
+		return [ 'wikis' => $targets ];
+	}
+
+	public static function isAvailable(): bool {
+		return ExtensionRegistry::getInstance()->isLoaded( 'CentralAuth' );
+	}
+
+	/**
+	 * @return object|null
+	 */
+	private function service( string $name ) {
+		$services = MediaWikiServices::getInstance();
+
+		foreach ( [ "CentralAuth.$name", $name ] as $candidate ) {
+			if ( $services->hasService( $candidate ) ) {
+				return $services->getService( $candidate );
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * @return array<string, mixed>|null
+	 */
+	private function authorised( string $reference, string $oldName, string $newName ): ?array {
+		$confirmation = $this->portal->confirmRemoval( $reference, $oldName, $newName );
+
+		if ( $confirmation === null ) {
+			return [
+				'retry' => true,
+				'error' => 'The portal could not be reached to confirm this erasure.',
+			];
+		}
+
+		if ( empty( $confirmation['match'] ) ) {
+			return [ 'error' => "The portal has no erasure numbered $reference for that account." ];
+		}
+
+		return null;
+	}
+
+	private function actor(): User {
+		return User::newSystemUser( 'Trust and Safety', [ 'steal' => true ] )
+			?? User::newSystemUser( 'MediaWiki default', [ 'steal' => true ] );
+	}
+}

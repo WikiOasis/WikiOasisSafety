@@ -1,0 +1,545 @@
+{
+	"name": "WikiOasisSafety",
+	"version": "0.1.0",
+	"author": [
+		"Zippybonzo"
+	],
+	"url": "https://meta.wikioasis.org/wiki/Trust_and_Safety",
+	"descriptionmsg": "wikioasissafety-desc",
+	"license-name": "GPL-2.0-or-later",
+	"type": "other",
+	"requires": {
+		"MediaWiki": ">= 1.43.0"
+	},
+	"AutoloadNamespaces": {
+		"MediaWiki\\Extension\\WikiOasisSafety\\": "includes/"
+	},
+	"MessagesDirs": {
+		"WikiOasisSafety": [
+			"i18n"
+		]
+	},
+	"ExtensionMessagesFiles": {
+		"WikiOasisSafetyAlias": "WikiOasisSafety.alias.php"
+	},
+	"SpecialPages": {
+		"SafetyReport": {
+			"class": "MediaWiki\\Extension\\WikiOasisSafety\\Specials\\SpecialSafetyReport"
+		},
+		"SafetyHome": {
+			"class": "MediaWiki\\Extension\\WikiOasisSafety\\Specials\\SpecialSafetyHome"
+		},
+		"SafetyAppeal": {
+			"class": "MediaWiki\\Extension\\WikiOasisSafety\\Specials\\SpecialSafetyAppeal"
+		}
+	},
+	"HookHandlers": {
+		"main": {
+			"class": "MediaWiki\\Extension\\WikiOasisSafety\\Hooks\\Main"
+		},
+		"discussiontools": {
+			"class": "MediaWiki\\Extension\\WikiOasisSafety\\Hooks\\DiscussionTools"
+		},
+		"schema": {
+			"class": "MediaWiki\\Extension\\WikiOasisSafety\\Hooks\\Schema"
+		},
+		"checkuser": {
+			"class": "MediaWiki\\Extension\\WikiOasisSafety\\Hooks\\CheckUser"
+		}
+	},
+	"Hooks": {
+		"BeforePageDisplay": "main",
+		"SpecialPageBeforeExecute": "checkuser",
+		"SpecialPageAfterExecute": "checkuser",
+		"ApiBeforeMain": "checkuser",
+		"APIAfterExecute": "checkuser",
+		"SidebarBeforeOutput": "main",
+		"DiscussionToolsAddOverflowMenuItems": "discussiontools",
+		"LoadExtensionSchemaUpdates": "schema"
+	},
+	"config": {
+		"WikiOasisSafetyEnabled": {
+			"value": true,
+			"description": "Master switch for the \"get help or report a problem\" entry points."
+		},
+		"WikiOasisSafetyNoticeboard": {
+			"value": "Project:Counter-vandalism unit",
+			"description": "Page the guidance cards link to. Any card in the wizard definition without its own url links here."
+		},
+		"WikiOasisSafetyWizard": {
+			"value": {},
+			"description": "Wizard-level wording and behaviour: title, description, submitLabel, nextLabel, backLabel. Each may instead be named as a message with a `-message` twin -- `title-message` -- which is what makes a flow translatable; see includes/Wording.php. Left unset entirely, the wizard falls back to wikioasissafety-title, -next, -back and -submit, which the extension already ships translated, so a flow only needs to set these when it has something else to say.",
+			"merge_strategy": "array_plus"
+		},
+		"WikiOasisSafetySteps": {
+			"value": {},
+			"description": "The wizard itself: step definitions keyed by step id, in the order they are offered. The extension ships no steps; with none configured no entry points are offered. Any key carrying text -- a step title or description, a field label, helpText, placeholder or defaultLabel, an option label, a card's text -- has a `-message` twin naming a message instead, and the twin wins over a literal beside it; that is how a flow is translated, since the client cannot declare message keys a wiki has not written yet. See includes/Wording.php, and tests/php/ExampleConfiguration.php for a complete flow.",
+			"merge_strategy": "array_plus"
+		},
+		"WikiOasisSafetyExclusiveFields": {
+			"value": [],
+			"description": "Groups of field names that are alternatives to each other: answering one forgets the others, follow-up text included."
+		},
+		"WikiOasisSafetyFieldRoles": {
+			"value": {},
+			"description": "Which field a prefilled report writes into, keyed by role: concerns, pages, users, wikis, details. A role left out is not prefilled.",
+			"merge_strategy": "array_plus"
+		},
+		"WikiOasisSafetyDataWizard": {
+			"value": {},
+			"description": "Wizard-level wording and behaviour for the manage-my-data flow: title, description, submitLabel, nextLabel, backLabel.",
+			"merge_strategy": "array_plus"
+		},
+		"WikiOasisSafetyDataSteps": {
+			"value": {},
+			"description": "The manage-my-data flow, offered by the \"Manage my data\" card on Special:SafetyHome: step definitions keyed by step id, in the order they are offered. With none configured the card says the route is not available here. See tests/php/ExampleConfiguration.php.",
+			"merge_strategy": "array_plus"
+		},
+		"WikiOasisSafetyDataExclusiveFields": {
+			"value": [],
+			"description": "As $wgWikiOasisSafetyExclusiveFields, for the manage-my-data flow."
+		},
+		"WikiOasisSafetyDataFieldRoles": {
+			"value": {},
+			"description": "As $wgWikiOasisSafetyFieldRoles, for the manage-my-data flow.",
+			"merge_strategy": "array_plus"
+		},
+		"WikiOasisSafetyContactWizard": {
+			"value": {},
+			"description": "Wizard-level wording and behaviour for the contact Trust & Safety flow: title, description, submitLabel, nextLabel, backLabel.",
+			"merge_strategy": "array_plus"
+		},
+		"WikiOasisSafetyContactSteps": {
+			"value": {},
+			"description": "The contact Trust & Safety flow, offered by the \"Contact Trust & Safety\" card on Special:SafetyHome: step definitions keyed by step id, in the order they are offered. With none configured the card says the route is not available here. See tests/php/ExampleConfiguration.php.",
+			"merge_strategy": "array_plus"
+		},
+		"WikiOasisSafetyContactExclusiveFields": {
+			"value": [],
+			"description": "As $wgWikiOasisSafetyExclusiveFields, for the contact Trust & Safety flow."
+		},
+		"WikiOasisSafetyContactFieldRoles": {
+			"value": {},
+			"description": "As $wgWikiOasisSafetyFieldRoles, for the contact Trust & Safety flow.",
+			"merge_strategy": "array_plus"
+		},
+		"WikiOasisSafetyCategories": {
+			"value": {},
+			"description": "The vocabulary the report flow's answers are categorised into: { id: { label, group, description } }, or { id: label } when there is nothing to say beyond the wording. A label may be named as a message with `label-message` instead, which a transparency report published in more than one language needs. An option in $wgWikiOasisSafetySteps carries `category` to name one; an option whose own `value` is a category id needs no `category` key, which is what lets an existing flow start categorising without every option being edited. Resolved on the server — see includes/Categories.php — because these are counted into published transparency reports and a figure in one must not be something a browser could have been talked into sending. With none declared, submissions are uncategorised, which the portal treats as \"somebody has to read this\" rather than guessing.",
+			"merge_strategy": "array_plus"
+		},
+		"WikiOasisSafetyDataCategories": {
+			"value": {},
+			"description": "As $wgWikiOasisSafetyCategories, for the manage-my-data flow.",
+			"merge_strategy": "array_plus"
+		},
+		"WikiOasisSafetyContactCategories": {
+			"value": {},
+			"description": "As $wgWikiOasisSafetyCategories, for the contact Trust & Safety flow. Worth setting separately: a message to Trust & Safety is about a policy question or a press enquiry, not about harassment or copyright, and one list holding both offers every reader categories that cannot apply to what they are writing.",
+			"merge_strategy": "array_plus"
+		},
+		"WikiOasisSafetyCheckUserTracking": {
+			"value": false,
+			"description": "Send Trust & Safety the metadata of CheckUser checks run on this wiki: who ran each check, the reason they gave, what kind of target, and when. Never what a check returned. Off by default and deliberately so — shipping a wiki's CheckUser log somewhere new is a decision for the people who granted the right, not a side effect of an extension upgrade. Nothing needs scheduling: a check is sent to the portal after the response that ran it has gone out, and queues in wos_outbox if the portal is unreachable."
+		},
+		"WikiOasisSafetyCheckUserTargets": {
+			"value": "accounts",
+			"description": "How much of a check's target leaves the wiki. `accounts` (the default) sends an account name as itself and reduces an IP or range to a keyed fingerprint, so the portal can count repeat checks against one target without ever holding the address. `all` sends every target as it was typed, IPs included — only for a portal held to the same standard as the wiki. `none` sends no target at all: who, why, when and what kind, and nothing more. An unrecognised value falls back to `accounts`, because a typo here must not be the reason a farm starts shipping IP addresses."
+		},
+		"WikiOasisSafetyCheckUserBatch": {
+			"value": 500,
+			"description": "How many checks may be sent in one request. A ceiling rather than a target — an ordinary check sends one row — and bounded to 1000, which is what the portal accepts at once."
+		},
+		"WikiOasisSafetyPortalUrl": {
+			"value": "",
+			"description": "Base URL of TSPortal, with no trailing slash. Empty means no portal: submissions cannot be sent and the wizard says so rather than pretending."
+		},
+		"WikiOasisSafetyPortalSecret": {
+			"value": "",
+			"description": "Shared secret for signing requests to and from TSPortal. Generate it with the portal's `php artisan tsportal:secret`. Anyone holding it can file reports and read any account's standing; treat it as a password."
+		},
+		"WikiOasisSafetyPortalTimeout": {
+			"value": 10,
+			"description": "Seconds to wait for the portal. Kept short: a reporter is watching, and a queued submission that is delivered a minute later is better than a page that hangs."
+		},
+		"WikiOasisSafetyPortalTolerance": {
+			"value": 300,
+			"description": "How far apart this wiki's clock and the portal's may be, in seconds, before a signed request is refused."
+		},
+		"WikiOasisSafetyMaxUploadSize": {
+			"value": 26214400,
+			"description": "Largest attachment, in bytes, that this wiki will forward to the portal. The portal is the authority on the real limit and refuses again at its end (TS_ATTACHMENTS_MAX_BYTES there); this exists so a wiki does not read a 400 MB file into memory in order to be told it was too big, which is a thing one reporter could otherwise use to exhaust it. Keep it at or below the portal's, and below PHP's own upload_max_filesize and post_max_size, which refuse earlier still and with a much worse message. 0 disables the wiki's own check and leaves it entirely to the portal. Default 25 MB."
+		},
+		"WikiOasisSafetyPiiDeletions": {
+			"value": {},
+			"description": "Extra rows to delete when erasing an account, keyed by table: { table: [ { where: { column: value } } ] }. Merged over the built-in list in includes/Pii/PiiTables.php, so adding an operation to a table already covered keeps both. Set a table to an empty list to stop the built-in one. Use this for rows that exist only to record personal data; anything that has to survive for another reason belongs in $wgWikiOasisSafetyPiiUpdates instead.",
+			"merge_strategy": "array_plus"
+		},
+		"WikiOasisSafetyPiiUpdates": {
+			"value": {},
+			"description": "Extra rows to blank rather than delete when erasing an account, keyed by table: { table: [ { fields: { column: value }, where: { column: value } } ] }. For rows that have to survive — a recent-changes entry is the record of an edit — and merely carry personal data along with them.",
+			"merge_strategy": "array_plus"
+		},
+		"WikiOasisSafetyPiiNamespaces": {
+			"value": [],
+			"description": "Extra namespace numbers holding an account's own pages, deleted with suppression when it is erased. User, user talk and the social-profile namespaces are covered already when their extensions are loaded."
+		}
+	},
+	"ResourceFileModulePaths": {
+		"localBasePath": "resources/ext.wikiOasisSafety",
+		"remoteExtPath": "WikiOasisSafety/resources/ext.wikiOasisSafety"
+	},
+	"ResourceModules": {
+		"ext.wikiOasisSafety": {
+			"styles": [
+				"ext.wikiOasisSafety.less"
+			],
+			"packageFiles": [
+				"init.js",
+				"App.vue",
+				"SafetyWizard.vue",
+				"FieldRenderer.vue",
+				"OptionFollowUp.vue",
+				"FileDropCard.vue",
+				"portal.js",
+				"submitMessage.js",
+				"anonymity.js",
+				"wizard.js",
+				"fieldTypes.js",
+				"fileHelpers.js",
+				"fileStore.js",
+				"prefill.js",
+				"search.js",
+				{
+					"name": "flow.json",
+					"callback": "MediaWiki\\Extension\\WikiOasisSafety\\WizardDefinition::provideFlow",
+					"versionCallback": "MediaWiki\\Extension\\WikiOasisSafety\\WizardDefinition::provideFlowVersion"
+				},
+				{
+					"name": "icons.json",
+					"callback": "MediaWiki\\ResourceLoader\\CodexModule::getIcons",
+					"callbackParam": [
+						"cdxIconUserGroup",
+						"cdxIconTrash",
+						"cdxIconFlag",
+						"cdxIconUpload",
+						"cdxIconImage",
+						"cdxIconArticle",
+						"cdxIconAttachment",
+						"cdxIconAlert",
+						"cdxIconInfoFilled",
+						"cdxIconUserAvatar",
+						"cdxIconLock",
+						"cdxIconHelp"
+					]
+				}
+			],
+			"messages": [
+				"wikioasissafety-back",
+				"wikioasissafety-close",
+				"wikioasissafety-comment-failed",
+				"wikioasissafety-comment-queued",
+				"wikioasissafety-comment-sending",
+				"wikioasissafety-error-checkbox-required",
+				"wikioasissafety-error-required",
+				"wikioasissafety-error-summary",
+				"wikioasissafety-file-badtype",
+				"wikioasissafety-file-choose",
+				"wikioasissafety-file-constraint-count",
+				"wikioasissafety-file-constraint-size",
+				"wikioasissafety-file-drop",
+				"wikioasissafety-file-duplicate",
+				"wikioasissafety-file-willupload",
+				"wikioasissafety-file-uploaded",
+				"wikioasissafety-file-notsent",
+				"wikioasissafety-file-lost",
+				"wikioasissafety-file-uploadfailed",
+				"wikioasissafety-file-uploaderror",
+				"wikioasissafety-file-toobig-portal",
+				"wikioasissafety-file-toobig-wiki",
+				"wikioasissafety-file-partial",
+				"wikioasissafety-file-preview",
+				"wikioasissafety-file-remove",
+				"wikioasissafety-file-toobig",
+				"wikioasissafety-file-toomany",
+				"wikioasissafety-followup-label",
+				"wikioasissafety-next",
+				"wikioasissafety-noflow",
+				"wikioasissafety-search-add",
+				"wikioasissafety-submit",
+				"wikioasissafety-submit-failed",
+				"wikioasissafety-submit-throttled",
+				"wikioasissafety-submit-queued",
+				"wikioasissafety-submit-sending",
+				"wikioasissafety-submit-sent",
+				"wikioasissafety-submit-sent-anonymous",
+				"wikioasissafety-submit-sent-temp",
+				"wikioasissafety-submitted",
+				"wikioasissafety-submitted-details",
+				"wikioasissafety-submitted-details-anonymous",
+				"wikioasissafety-title"
+			],
+			"dependencies": [
+				"vue",
+				"@wikimedia/codex",
+				"mediawiki.api",
+				"mediawiki.util",
+				"mediawiki.jqueryMsg"
+			]
+		},
+		"ext.wikiOasisSafety.home": {
+			"styles": [
+				"ext.wikiOasisSafety.home.less"
+			],
+			"packageFiles": [
+				"home.js",
+				"SafetyHome.vue",
+				"WizardDialog.vue",
+				"ReportsDialog.vue",
+				"AccountStatusDialog.vue",
+				"submitMessage.js",
+				"anonymity.js",
+				"portal.js",
+				"records.js",
+				"format.js",
+				"SafetyWizard.vue",
+				"FieldRenderer.vue",
+				"OptionFollowUp.vue",
+				"FileDropCard.vue",
+				"wizard.js",
+				"fieldTypes.js",
+				"fileHelpers.js",
+				"fileStore.js",
+				"prefill.js",
+				"search.js",
+				{
+					"name": "flow.json",
+					"callback": "MediaWiki\\Extension\\WikiOasisSafety\\WizardDefinition::provideFlow",
+					"versionCallback": "MediaWiki\\Extension\\WikiOasisSafety\\WizardDefinition::provideFlowVersion"
+				},
+				{
+					"name": "flow.data.json",
+					"callback": "MediaWiki\\Extension\\WikiOasisSafety\\WizardDefinition::provideFlow",
+					"versionCallback": "MediaWiki\\Extension\\WikiOasisSafety\\WizardDefinition::provideFlowVersion",
+					"callbackParam": "Data"
+				},
+				{
+					"name": "flow.contact.json",
+					"callback": "MediaWiki\\Extension\\WikiOasisSafety\\WizardDefinition::provideFlow",
+					"versionCallback": "MediaWiki\\Extension\\WikiOasisSafety\\WizardDefinition::provideFlowVersion",
+					"callbackParam": "Contact"
+				},
+				{
+					"name": "icons.json",
+					"callback": "MediaWiki\\ResourceLoader\\CodexModule::getIcons",
+					"callbackParam": [
+						"cdxIconFlag",
+						"cdxIconDatabase",
+						"cdxIconTray",
+						"cdxIconUserAvatar",
+						"cdxIconSpeechBubbles",
+						"cdxIconArrowPrevious",
+						"cdxIconUserGroup",
+						"cdxIconTrash",
+						"cdxIconUpload",
+						"cdxIconImage",
+						"cdxIconArticle",
+						"cdxIconAttachment",
+						"cdxIconAlert",
+						"cdxIconInfoFilled",
+						"cdxIconLock",
+						"cdxIconHelp"
+					]
+				}
+			],
+			"messages": [
+				"wikioasissafety-back",
+				"wikioasissafety-close",
+				"wikioasissafety-comment-failed",
+				"wikioasissafety-comment-queued",
+				"wikioasissafety-comment-sending",
+				"wikioasissafety-error-checkbox-required",
+				"wikioasissafety-error-required",
+				"wikioasissafety-error-summary",
+				"wikioasissafety-file-badtype",
+				"wikioasissafety-file-choose",
+				"wikioasissafety-file-constraint-count",
+				"wikioasissafety-file-constraint-size",
+				"wikioasissafety-file-drop",
+				"wikioasissafety-file-duplicate",
+				"wikioasissafety-file-willupload",
+				"wikioasissafety-file-uploaded",
+				"wikioasissafety-file-notsent",
+				"wikioasissafety-file-lost",
+				"wikioasissafety-file-uploadfailed",
+				"wikioasissafety-file-uploaderror",
+				"wikioasissafety-file-toobig-portal",
+				"wikioasissafety-file-toobig-wiki",
+				"wikioasissafety-file-partial",
+				"wikioasissafety-file-preview",
+				"wikioasissafety-file-remove",
+				"wikioasissafety-file-toobig",
+				"wikioasissafety-file-toomany",
+				"wikioasissafety-followup-label",
+				"wikioasissafety-home-account",
+				"wikioasissafety-home-account-active",
+				"wikioasissafety-home-account-appeal",
+				"wikioasissafety-home-account-appeal-button",
+				"wikioasissafety-home-account-appeal-none",
+				"wikioasissafety-home-account-description",
+				"wikioasissafety-home-account-ended",
+				"wikioasissafety-home-account-expired",
+				"wikioasissafety-home-account-expires",
+				"wikioasissafety-home-account-good",
+				"wikioasissafety-home-account-good-detail",
+				"wikioasissafety-home-account-history",
+				"wikioasissafety-home-account-issued",
+				"wikioasissafety-home-account-noactions",
+				"wikioasissafety-home-account-noexpiry",
+				"wikioasissafety-home-account-reference",
+				"wikioasissafety-home-account-restricted",
+				"wikioasissafety-home-account-restricted-detail",
+				"wikioasissafety-home-account-scope",
+				"wikioasissafety-home-account-since",
+				"wikioasissafety-home-account-suspended",
+				"wikioasissafety-home-account-suspended-detail",
+				"wikioasissafety-home-account-title",
+				"wikioasissafety-home-appeal-none",
+				"wikioasissafety-home-appeal-option",
+				"wikioasissafety-home-contact",
+				"wikioasissafety-home-contact-description",
+				"wikioasissafety-home-data",
+				"wikioasissafety-home-data-description",
+				"wikioasissafety-home-intro",
+				"wikioasissafety-home-login",
+				"wikioasissafety-home-temporary",
+				"wikioasissafety-home-report",
+				"wikioasissafety-home-report-description",
+				"wikioasissafety-home-reports",
+				"wikioasissafety-home-reports-about",
+				"wikioasissafety-home-reports-add",
+				"wikioasissafety-home-reports-add-button",
+				"wikioasissafety-home-reports-add-description",
+				"wikioasissafety-home-reports-add-placeholder",
+				"wikioasissafety-home-reports-added",
+				"wikioasissafety-home-reports-anonymous",
+				"wikioasissafety-home-reports-back",
+				"wikioasissafety-home-reports-category",
+				"wikioasissafety-home-reports-appeal-against",
+				"wikioasissafety-home-reports-appeal-action",
+				"wikioasissafety-home-reports-appeal-inforce",
+				"wikioasissafety-home-reports-appeal-lifted",
+				"wikioasissafety-home-reports-appeal-reason",
+				"wikioasissafety-home-reports-appeal-applies",
+				"wikioasissafety-home-reports-appeal-outcome",
+				"wikioasissafety-home-reports-appeal-undecided",
+				"wikioasissafety-home-reports-appeal-unmatched",
+				"wikioasissafety-home-reports-appeal-outcome-granted",
+				"wikioasissafety-home-reports-appeal-outcome-partly-granted",
+				"wikioasissafety-home-reports-appeal-outcome-declined",
+				"wikioasissafety-home-reports-appeal-outcome-withdrawn",
+				"wikioasissafety-home-reports-appeal-outcome-invalid",
+				"wikioasissafety-home-reports-comments",
+				"wikioasissafety-home-reports-description",
+				"wikioasissafety-home-reports-empty",
+				"wikioasissafety-home-reports-filed",
+				"wikioasissafety-home-reports-intro",
+				"wikioasissafety-home-reports-meta",
+				"wikioasissafety-home-reports-nocomments",
+				"wikioasissafety-home-reports-reference",
+				"wikioasissafety-home-reports-staff",
+				"wikioasissafety-home-reports-status-actiontaken",
+				"wikioasissafety-home-reports-status-closed",
+				"wikioasissafety-home-reports-status-inreview",
+				"wikioasissafety-home-reports-status-investigating",
+				"wikioasissafety-home-reports-status-rejected",
+				"wikioasissafety-home-reports-status-received",
+				"wikioasissafety-home-reports-title",
+				"wikioasissafety-home-reports-you",
+				"wikioasissafety-home-unconfigured",
+				"wikioasissafety-next",
+				"wikioasissafety-noflow",
+				"wikioasissafety-search-add",
+				"wikioasissafety-submit",
+				"wikioasissafety-submit-failed",
+				"wikioasissafety-submit-throttled",
+				"wikioasissafety-submit-queued",
+				"wikioasissafety-submit-sending",
+				"wikioasissafety-submit-sent",
+				"wikioasissafety-submit-sent-anonymous",
+				"wikioasissafety-submit-sent-temp",
+				"wikioasissafety-submitted",
+				"wikioasissafety-submitted-details",
+				"wikioasissafety-submitted-details-anonymous",
+				"wikioasissafety-title"
+			],
+			"dependencies": [
+				"vue",
+				"@wikimedia/codex",
+				"mediawiki.api",
+				"mediawiki.util",
+				"mediawiki.jqueryMsg"
+			]
+		},
+		"ext.wikiOasisSafety.nojs": {
+			"styles": [
+				"ext.wikiOasisSafety.nojs.less"
+			]
+		}
+	},
+	"DatabaseVirtualDomains": [
+		"virtual-wikioasissafety"
+	],
+	"JobClasses": {
+		"wikiOasisSafetyRemovePII": "MediaWiki\\Extension\\WikiOasisSafety\\Pii\\RemovePIIJob",
+		"wikiOasisSafetyBlock": "MediaWiki\\Extension\\WikiOasisSafety\\Enforcement\\BlockJob",
+		"wikiOasisSafetyNotifyAction": "MediaWiki\\Extension\\WikiOasisSafety\\Notifications\\NotifyActionTakenJob"
+	},
+	"manifest_version": 2,
+	"APIModules": {
+		"wikioasissafetysubmit": "MediaWiki\\Extension\\WikiOasisSafety\\Api\\ApiSafetySubmit",
+		"wikioasissafetyupload": "MediaWiki\\Extension\\WikiOasisSafety\\Api\\ApiSafetyUpload",
+		"wikioasissafetycomment": "MediaWiki\\Extension\\WikiOasisSafety\\Api\\ApiSafetyComment",
+		"wikioasissafetyappeal": "MediaWiki\\Extension\\WikiOasisSafety\\Api\\ApiSafetyAppeal",
+		"wikioasissafetysync": "MediaWiki\\Extension\\WikiOasisSafety\\Api\\ApiSafetySync",
+		"wikioasissafetylookup": "MediaWiki\\Extension\\WikiOasisSafety\\Api\\ApiSafetyLookup",
+		"wikioasissafetyenforce": "MediaWiki\\Extension\\WikiOasisSafety\\Api\\ApiSafetyEnforce"
+	},
+	"AuthManagerAutoConfig": {
+		"preauth": {
+			"WikiOasisSafetySuspendedAccount": {
+				"class": "MediaWiki\\Extension\\WikiOasisSafety\\Auth\\SuspendedAccountPreAuthProvider",
+				"sort": 10
+			}
+		}
+	},
+	"callback": "MediaWiki\\Extension\\WikiOasisSafety\\Hooks\\Main::onRegistration",
+	"RateLimits": {
+		"wikioasissafety-report": {
+			"user": [
+				15,
+				3600
+			]
+		},
+		"wikioasissafety-report-anon": {
+			"ip": [
+				3,
+				3600
+			]
+		},
+		"wikioasissafety-appeal": {
+			"anon": [
+				3,
+				3600
+			],
+			"user": [
+				5,
+				3600
+			],
+			"ip": [
+				5,
+				3600
+			]
+		}
+	}
+}
