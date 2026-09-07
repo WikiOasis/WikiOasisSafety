@@ -19,7 +19,7 @@ class BlockJob extends Job implements GenericParameterJob {
 	private const REASON = 'Trust and Safety enforcement action. Direct inquiries to safety@wikioasis.org.';
 
 	public function __construct( array $params ) {
-		parent::__construct( 'wikiOasisSafetyBlock', $params );
+		parent::__construct( 'WikiOasisSafetyBlock', $params );
 		$this->removeDuplicates = true;
 	}
 

@@ -491,9 +491,9 @@
 		"virtual-wikioasissafety"
 	],
 	"JobClasses": {
-		"wikiOasisSafetyRemovePII": "MediaWiki\\Extension\\WikiOasisSafety\\Pii\\RemovePIIJob",
-		"wikiOasisSafetyBlock": "MediaWiki\\Extension\\WikiOasisSafety\\Enforcement\\BlockJob",
-		"wikiOasisSafetyNotifyAction": "MediaWiki\\Extension\\WikiOasisSafety\\Notifications\\NotifyActionTakenJob"
+		"WikiOasisSafetyRemovePII": "MediaWiki\\Extension\\WikiOasisSafety\\Pii\\RemovePIIJob",
+		"WikiOasisSafetyBlock": "MediaWiki\\Extension\\WikiOasisSafety\\Enforcement\\BlockJob",
+		"WikiOasisSafetyNotifyAction": "MediaWiki\\Extension\\WikiOasisSafety\\Notifications\\NotifyActionTakenJob"
 	},
 	"manifest_version": 2,
 	"APIModules": {

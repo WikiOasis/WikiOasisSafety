@@ -9,7 +9,7 @@ use Job;
 class NotifyActionTakenJob extends Job implements GenericParameterJob {
 
 	public function __construct( array $params ) {
-		parent::__construct( 'wikiOasisSafetyNotifyAction', $params );
+		parent::__construct( 'WikiOasisSafetyNotifyAction', $params );
 	}
 
 	/** @inheritDoc */
