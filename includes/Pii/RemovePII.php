@@ -74,6 +74,7 @@ class RemovePII {
 				new GlobalRenameUserStatus( $databases, $newUser->getName() ),
 				$services->getJobQueueGroupFactory(),
 				new GlobalRenameUserDatabaseUpdates( $databases ),
+				new RemovePIILogger( $this->actor() ),
 				$antiSpoof
 			);
 
