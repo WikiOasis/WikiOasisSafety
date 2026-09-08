@@ -5,13 +5,11 @@ namespace MediaWiki\Extension\WikiOasisSafety\Pii;
 
 use GenericParameterJob;
 use Job;
-use MediaWiki\Extension\CentralAuth\User\CentralAuthUser;
 use MediaWiki\Extension\WikiOasisSafety\Portal\PortalClient;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Registration\ExtensionRegistry;
 use MediaWiki\User\User;
 use MediaWiki\WikiMap\WikiMap;
-use MWCryptRand;
 use Throwable;
 use Wikimedia\Rdbms\DBQueryError;
 use Wikimedia\Rdbms\IDatabase;
@@ -59,15 +57,9 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 		$userFactory = $services->getUserFactory();
 		$lbFactory = $services->getDBLoadBalancerFactory();
 
-		$newCentral = CentralAuthUser::getInstanceByName( $this->newName );
-		$newCentral->invalidateCache();
-
-		$newCentral->setPassword( MWCryptRand::generateHex( 32 ), true );
-
-		foreach ( (array)$newCentral->getGlobalGroups() as $group ) {
-			$newCentral->removeFromGlobalGroups( $group );
-		}
-
+		// The global account itself (its password, groups and lock) is erased once, by
+		// RemovePII::scrub(), because CentralAuth's database is shared by every wiki. This job
+		// only scrubs the local wiki it runs on.
 		$oldUser = $userFactory->newFromName( $this->oldName );
 		$newUser = $userFactory->newFromName( $this->newName );
 
@@ -116,9 +108,6 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 				$latest->saveSettings();
 			}
 		}
-
-		$newCentral->adminLock();
-		$newCentral->invalidateCache();
 
 		$this->verify( $dbw, $oldTitleKey, $renameLogKey );
 	}
