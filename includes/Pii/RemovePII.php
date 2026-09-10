@@ -20,6 +20,7 @@ class RemovePII {
 
 	private UserFactory $userFactory;
 	private PortalClient $portal;
+	private ?User $systemActor = null;
 
 	public function __construct( ?UserFactory $userFactory = null, ?PortalClient $portal = null ) {
 		$this->userFactory = $userFactory
@@ -171,6 +172,15 @@ class RemovePII {
 			return [ 'wikis' => [], 'retry' => true, 'error' => $failure ];
 		}
 
+		// Claim the system account the per-wiki jobs act as, once, here. Passing
+		// 'steal' to User::newSystemUser() calls AuthManager::revokeAccessForUser(),
+		// which writes CentralAuth's shared globaluser row for that account. Doing it
+		// from the jobs instead had every attached wiki write the same row at the same
+		// time, and the losers of that race failed with "Record has changed since last
+		// read in table 'globaluser'" - the same way the target account's row used to.
+		// RemovePIIJob looks the account up without stealing.
+		$this->actor();
+
 		$factory = MediaWikiServices::getInstance()->getJobQueueGroupFactory();
 
 		foreach ( $targets as $wiki ) {
@@ -259,8 +269,15 @@ class RemovePII {
 		return null;
 	}
 
+	/**
+	 * Memoised: stealing calls AuthManager::revokeAccessForUser(), which writes
+	 * CentralAuth's shared globaluser row. rename() needs the actor twice and scrub()
+	 * once, and there is no reason to write that row more than once per request.
+	 */
 	private function actor(): User {
-		return User::newSystemUser( 'Trust and Safety', [ 'steal' => true ] )
+		$this->systemActor ??= User::newSystemUser( 'Trust and Safety', [ 'steal' => true ] )
 			?? User::newSystemUser( 'MediaWiki default', [ 'steal' => true ] );
+
+		return $this->systemActor;
 	}
 }

@@ -37,6 +37,22 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 		try {
 			$this->erase();
 		} catch ( Throwable $e ) {
+			// A query that failed inside the transaction round leaves the connection in
+			// STATUS_TRX_ERROR. Returning false without rolling back lets JobRunner go on
+			// to commit that round, and the COMMIT itself then throws
+			// DBTransactionStateError, which replaces the real error in the logs with a
+			// useless one. Roll back here so the job reports the failure it actually hit.
+			try {
+				MediaWikiServices::getInstance()
+					->getDBLoadBalancerFactory()
+					->rollbackPrimaryChanges( __METHOD__ );
+			} catch ( Throwable $rollbackError ) {
+				wfLogWarning(
+					'WikiOasisSafety: rollback after a failed erasure also failed: '
+					. $rollbackError->getMessage()
+				);
+			}
+
 			$this->setLastError( get_class( $e ) . ': ' . $e->getMessage() );
 			$this->report( false, $e->getMessage() );
 
@@ -211,12 +227,7 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 
 	private function deleteUserPages( User $oldUser, IDatabase $dbw ): void {
 		$services = MediaWikiServices::getInstance();
-		$actor = User::newSystemUser( 'Trust and Safety', [ 'steal' => true ] )
-			?? User::newSystemUser( 'MediaWiki default', [ 'steal' => true ] );
-
-		if ( !$actor ) {
-			throw new \RuntimeException( 'No system account is available to delete with.' );
-		}
+		$actor = $this->systemActor();
 
 		$services->getUserGroupManager()->addUserToGroup( $actor, 'bot', null, true );
 
@@ -265,6 +276,29 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 				->caller( __METHOD__ )
 				->execute();
 		}
+	}
+
+	/**
+	 * The system account these jobs act as.
+	 *
+	 * Deliberately does NOT pass 'steal'. Stealing calls
+	 * AuthManager::revokeAccessForUser(), which writes CentralAuth's globaluser row for
+	 * the system account - a single row in one database shared by every wiki. This job
+	 * runs once per attached wiki, so stealing from here had every job update that same
+	 * row at once and the losers failed with "Error 1020: Record has changed since last
+	 * read in table 'globaluser'", exactly as the target account's row used to.
+	 * RemovePII::scrub() claims the account, once, before these jobs are queued.
+	 */
+	private function systemActor(): User {
+		foreach ( [ 'Trust and Safety', 'MediaWiki default' ] as $name ) {
+			$actor = User::newSystemUser( $name );
+
+			if ( $actor ) {
+				return $actor;
+			}
+		}
+
+		throw new \RuntimeException( 'No system account is available to delete with.' );
 	}
 
 	private function titleMatches( IDatabase $dbw, string $column, string $key ) {
