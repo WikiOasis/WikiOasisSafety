@@ -11,7 +11,8 @@ use MediaWiki\Registration\ExtensionRegistry;
 use MediaWiki\User\User;
 use MediaWiki\WikiMap\WikiMap;
 use Throwable;
-use Wikimedia\Rdbms\DBQueryError;
+use Wikimedia\Rdbms\DBError;
+use Wikimedia\Rdbms\DBExpectedError;
 use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Rdbms\IExpression;
 use Wikimedia\Rdbms\LikeValue;
@@ -36,6 +37,13 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 	public function run(): bool {
 		try {
 			$this->erase();
+		} catch ( DBError $e ) {
+			// Rethrow so JobRunner rolls the transaction round back. Returning false makes it
+			// commit a round that the failed statement has already put into an error state.
+			$this->setLastError( get_class( $e ) . ': ' . $e->getMessage() );
+			$this->report( false, $e->getMessage() );
+
+			throw $e;
 		} catch ( Throwable $e ) {
 			$this->setLastError( get_class( $e ) . ': ' . $e->getMessage() );
 			$this->report( false, $e->getMessage() );
@@ -57,7 +65,7 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 		$userFactory = $services->getUserFactory();
 		$lbFactory = $services->getDBLoadBalancerFactory();
 
-		// The global account itself (its password, groups and lock) is erased once, by
+		// The global account itself (its password, groups, email and lock) is erased once, by
 		// RemovePII::scrub(), because CentralAuth's database is shared by every wiki. This job
 		// only scrubs the local wiki it runs on.
 		$oldUser = $userFactory->newFromName( $this->oldName );
@@ -91,22 +99,11 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 				'renameLogKey' => $renameLogKey,
 			];
 
-			$this->apply( $dbw, $lbFactory, PiiTables::deletions( $context ), delete: true );
-			$this->apply( $dbw, $lbFactory, PiiTables::updates( $context ), delete: false );
+			$this->apply( $dbw, PiiTables::deletions( $context ), delete: true );
+			$this->apply( $dbw, PiiTables::updates( $context ), delete: false );
 
 			$this->deleteUserPages( $oldUser, $dbw );
-
-			$latest = $newUser->getInstanceForUpdate();
-
-			if ( $latest !== null ) {
-				if ( $latest->getEmail() ) {
-					$latest->invalidateEmail();
-				}
-				if ( $latest->getRealName() ) {
-					$latest->setRealName( '' );
-				}
-				$latest->saveSettings();
-			}
+			$this->eraseLocalAccount( $dbw, $newUser );
 		}
 
 		$this->verify( $dbw, $oldTitleKey, $renameLogKey );
@@ -174,7 +171,7 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 	/**
 	 * @param array<string, list<array<string, mixed>>> $tables
 	 */
-	private function apply( IDatabase $dbw, $lbFactory, array $tables, bool $delete ): void {
+	private function apply( IDatabase $dbw, array $tables, bool $delete ): void {
 		foreach ( $tables as $table => $operations ) {
 			if ( !$dbw->tableExists( $table, __METHOD__ ) ) {
 				continue;
@@ -185,26 +182,32 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 					continue;
 				}
 
+				// Cancelable, so a failed statement unwinds to a savepoint instead of leaving
+				// the whole round unusable for the operations after it.
 				try {
-					if ( $delete ) {
-						$dbw->newDeleteQueryBuilder()
-							->deleteFrom( $table )
-							->where( $operation['where'] )
-							->caller( __METHOD__ )
-							->execute();
-					} else {
-						$dbw->newUpdateQueryBuilder()
-							->update( $table )
-							->set( $operation['fields'] )
-							->where( $operation['where'] )
-							->caller( __METHOD__ )
-							->execute();
-					}
-				} catch ( DBQueryError $e ) {
-					throw new \RuntimeException( "$table: " . $e->getMessage(), 0, $e );
+					$dbw->doAtomicSection(
+						__METHOD__,
+						static function ( IDatabase $dbw, string $fname ) use ( $table, $operation, $delete ) {
+							if ( $delete ) {
+								$dbw->newDeleteQueryBuilder()
+									->deleteFrom( $table )
+									->where( $operation['where'] )
+									->caller( $fname )
+									->execute();
+							} else {
+								$dbw->newUpdateQueryBuilder()
+									->update( $table )
+									->set( $operation['fields'] )
+									->where( $operation['where'] )
+									->caller( $fname )
+									->execute();
+							}
+						},
+						IDatabase::ATOMIC_CANCELABLE
+					);
+				} catch ( DBError $e ) {
+					throw new DBExpectedError( $dbw, "$table: " . $e->getMessage(), [], $e );
 				}
-
-				$lbFactory->waitForReplication();
 			}
 		}
 	}
@@ -240,15 +243,21 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 		foreach ( $rows as $row ) {
 			$title = $titleFactory->newFromRow( $row );
 
-			$status = $deletePageFactory
-				->newDeletePage( $wikiPageFactory->newFromTitle( $title ), $actor )
-				->setSuppress( true )
-				->forceImmediate( true )
-				->deleteUnsafe( $this->reference );
+			$dbw->doAtomicSection(
+				__METHOD__,
+				function () use ( $deletePageFactory, $wikiPageFactory, $title, $actor ) {
+					$status = $deletePageFactory
+						->newDeletePage( $wikiPageFactory->newFromTitle( $title ), $actor )
+						->setSuppress( true )
+						->forceImmediate( true )
+						->deleteUnsafe( $this->reference );
 
-			if ( !$status->isOK() ) {
-				throw new \RuntimeException( 'Could not delete ' . $title->getPrefixedText() );
-			}
+					if ( !$status->isOK() ) {
+						throw new \RuntimeException( 'Could not delete ' . $title->getPrefixedText() );
+					}
+				},
+				IDatabase::ATOMIC_CANCELABLE
+			);
 		}
 
 		foreach ( [
@@ -256,15 +265,58 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 			[ 'logging', 'log_namespace', 'log_title' ],
 			[ 'recentchanges', 'rc_namespace', 'rc_title' ],
 		] as [ $table, $namespaceColumn, $titleColumn ] ) {
-			$dbw->newDeleteQueryBuilder()
-				->deleteFrom( $table )
-				->where( [
-					$namespaceColumn => $namespaces,
-					$this->titleMatches( $dbw, $titleColumn, $key ),
-				] )
-				->caller( __METHOD__ )
-				->execute();
+			$where = [
+				$namespaceColumn => $namespaces,
+				$this->titleMatches( $dbw, $titleColumn, $key ),
+			];
+
+			$dbw->doAtomicSection(
+				__METHOD__,
+				static function ( IDatabase $dbw, string $fname ) use ( $table, $where ) {
+					$dbw->newDeleteQueryBuilder()
+						->deleteFrom( $table )
+						->where( $where )
+						->caller( $fname )
+						->execute();
+				},
+				IDatabase::ATOMIC_CANCELABLE
+			);
 		}
+	}
+
+	/**
+	 * Clear the email and real name from the local user row.
+	 *
+	 * Written directly because every User setter that touches the email fires a hook that
+	 * CentralAuth answers with a CAS-guarded write to the shared globaluser row: setEmail() and
+	 * invalidateEmail() both fire InvalidateEmailComplete and UserSetEmailAuthenticationTimestamp,
+	 * and saveSettings() fires UserSaveSettings. Those writes belong to
+	 * RemovePII::eraseGlobalAccount(), which runs once, and raced between wikis from here.
+	 */
+	private function eraseLocalAccount( IDatabase $dbw, User $user ): void {
+		$userId = $user->getId();
+
+		$dbw->doAtomicSection(
+			__METHOD__,
+			static function ( IDatabase $dbw, string $fname ) use ( $userId ) {
+				$dbw->newUpdateQueryBuilder()
+					->update( 'user' )
+					->set( [
+						'user_email' => '',
+						'user_email_authenticated' => null,
+						'user_email_token' => null,
+						'user_email_token_expires' => null,
+						'user_real_name' => '',
+						'user_touched' => $dbw->timestamp(),
+					] )
+					->where( [ 'user_id' => $userId ] )
+					->caller( $fname )
+					->execute();
+			},
+			IDatabase::ATOMIC_CANCELABLE
+		);
+
+		$user->invalidateCache();
 	}
 
 	private function titleMatches( IDatabase $dbw, string $column, string $key ) {

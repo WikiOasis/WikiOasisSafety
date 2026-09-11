@@ -185,7 +185,7 @@ class RemovePII {
 	}
 
 	/**
-	 * Strip the global account's groups, scramble its password and lock it.
+	 * Strip the global account's groups, scramble its password, clear its email and lock it.
 	 *
 	 * Every step writes to CentralAuth's shared database and every step is safe to repeat,
 	 * so the whole task can be retried.
@@ -202,6 +202,10 @@ class RemovePII {
 			}
 
 			$central->setPassword( MWCryptRand::generateHex( 32 ), true );
+
+			$central->setEmail( '' );
+			$central->setEmailAuthenticationTimestamp( null );
+			$central->saveSettings();
 
 			if ( !$locked ) {
 				$central->adminLock();
