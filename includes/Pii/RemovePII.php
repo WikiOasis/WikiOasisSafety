@@ -196,6 +196,14 @@ class RemovePII {
 
 			$central->setPassword( MWCryptRand::generateHex( 32 ), true );
 
+			$central->setEmail( '' );
+			$central->setEmailAuthenticationTimestamp( null );
+			$central->saveSettings();
+
+			if ( $central->getEmail() !== '' ) {
+				return 'CentralAuth would not clear the global email address.';
+			}
+
 			if ( !$locked ) {
 				$central->adminLock();
 				$central->invalidateCache();
