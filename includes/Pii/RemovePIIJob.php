@@ -169,7 +169,9 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 	}
 
 	/**
+	 * @param IDatabase $dbw
 	 * @param array<string, list<array<string, mixed>>> $tables
+	 * @param bool $delete Delete the matching rows rather than updating them.
 	 */
 	private function apply( IDatabase $dbw, array $tables, bool $delete ): void {
 		foreach ( $tables as $table => $operations ) {
@@ -182,8 +184,11 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 					continue;
 				}
 
-				// Cancelable, so a failed statement unwinds to a savepoint instead of leaving
-				// the whole round unusable for the operations after it.
+				// Cancelable, so a failed statement unwinds to its own savepoint and leaves the
+				// transaction round usable. Without the savepoint the round is flagged as
+				// errored, and the rethrow below then reaches JobRunner as a round that can
+				// only fail to commit. This does not let the loop continue past a failure:
+				// the catch below still abandons the remaining operations.
 				try {
 					$dbw->doAtomicSection(
 						__METHOD__,
