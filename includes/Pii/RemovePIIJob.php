@@ -45,6 +45,17 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 
 			throw $e;
 		} catch ( Throwable $e ) {
+			try {
+				MediaWikiServices::getInstance()
+					->getDBLoadBalancerFactory()
+					->rollbackPrimaryChanges( __METHOD__ );
+			} catch ( Throwable $rollbackError ) {
+				wfLogWarning(
+					'WikiOasisSafety: rollback after a failed erasure also failed: '
+					. $rollbackError->getMessage()
+				);
+			}
+
 			$this->setLastError( get_class( $e ) . ': ' . $e->getMessage() );
 			$this->report( false, $e->getMessage() );
 
@@ -64,7 +75,7 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 		$services = MediaWikiServices::getInstance();
 		$userFactory = $services->getUserFactory();
 		$lbFactory = $services->getDBLoadBalancerFactory();
-		
+
 		$oldUser = $userFactory->newFromName( $this->oldName );
 		$newUser = $userFactory->newFromName( $this->newName );
 
@@ -211,12 +222,7 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 
 	private function deleteUserPages( User $oldUser, IDatabase $dbw ): void {
 		$services = MediaWikiServices::getInstance();
-		$actor = User::newSystemUser( 'Trust and Safety', [ 'steal' => true ] )
-			?? User::newSystemUser( 'MediaWiki default', [ 'steal' => true ] );
-
-		if ( !$actor ) {
-			throw new \RuntimeException( 'No system account is available to delete with.' );
-		}
+		$actor = $this->systemActor();
 
 		$services->getUserGroupManager()->addUserToGroup( $actor, 'bot', null, true );
 
@@ -305,6 +311,18 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 		);
 
 		$user->invalidateCache();
+  }
+  
+	private function systemActor(): User {
+		foreach ( [ 'Trust and Safety', 'MediaWiki default' ] as $name ) {
+			$actor = User::newSystemUser( $name );
+
+			if ( $actor ) {
+				return $actor;
+			}
+		}
+
+		throw new \RuntimeException( 'No system account is available to delete with.' );
 	}
 
 	private function titleMatches( IDatabase $dbw, string $column, string $key ) {
