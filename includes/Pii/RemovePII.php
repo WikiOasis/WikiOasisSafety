@@ -185,11 +185,6 @@ class RemovePII {
 	}
 
 	/**
-	 * Strip the global account's groups, scramble its password, clear its email and lock it.
-	 *
-	 * Every step writes to CentralAuth's shared database and every step is safe to repeat,
-	 * so the whole task can be retried.
-	 *
 	 * @return string|null An error to report back, or null if the account was erased.
 	 */
 	private function eraseGlobalAccount( CentralAuthUser $central ): ?string {
@@ -207,10 +202,6 @@ class RemovePII {
 			$central->setEmailAuthenticationTimestamp( null );
 			$central->saveSettings();
 
-			// saveSettings() only logs a warning when its CAS check on gu_cas_token fails, so a
-			// concurrent write to the globaluser row leaves the address in place and says nothing.
-			// Check it, because reporting a finished erasure while the email survives is the one
-			// outcome this task must never produce. The lock below is verified for the same reason.
 			if ( $central->getEmail() !== '' ) {
 				return 'CentralAuth would not clear the global email address.';
 			}
