@@ -162,23 +162,11 @@ class RemovePII {
 		$attached = $newCentral->listAttached();
 		$targets = $wikis === null ? $attached : array_values( array_intersect( $wikis, $attached ) );
 
-		// The global account lives in one shared database, so it is erased here, once. Doing it
-		// from the per-wiki jobs instead had every attached wiki write to the same globaluser row
-		// at the same time, and the losers of that race failed with
-		// "Record has changed since last read in table 'globaluser'".
 		$failure = $this->eraseGlobalAccount( $newCentral );
 
 		if ( $failure !== null ) {
 			return [ 'wikis' => [], 'retry' => true, 'error' => $failure ];
 		}
-
-		// Claim the system account the per-wiki jobs act as, once, here. Passing
-		// 'steal' to User::newSystemUser() calls AuthManager::revokeAccessForUser(),
-		// which writes CentralAuth's shared globaluser row for that account. Doing it
-		// from the jobs instead had every attached wiki write the same row at the same
-		// time, and the losers of that race failed with "Record has changed since last
-		// read in table 'globaluser'" - the same way the target account's row used to.
-		// RemovePIIJob looks the account up without stealing.
 		$this->actor();
 
 		$factory = MediaWikiServices::getInstance()->getJobQueueGroupFactory();
@@ -195,11 +183,6 @@ class RemovePII {
 	}
 
 	/**
-	 * Strip the global account's groups, scramble its password and lock it.
-	 *
-	 * Every step writes to CentralAuth's shared database and every step is safe to repeat,
-	 * so the whole task can be retried.
-	 *
 	 * @return string|null An error to report back, or null if the account was erased.
 	 */
 	private function eraseGlobalAccount( CentralAuthUser $central ): ?string {
@@ -269,11 +252,6 @@ class RemovePII {
 		return null;
 	}
 
-	/**
-	 * Memoised: stealing calls AuthManager::revokeAccessForUser(), which writes
-	 * CentralAuth's shared globaluser row. rename() needs the actor twice and scrub()
-	 * once, and there is no reason to write that row more than once per request.
-	 */
 	private function actor(): User {
 		$this->systemActor ??= User::newSystemUser( 'Trust and Safety', [ 'steal' => true ] )
 			?? User::newSystemUser( 'MediaWiki default', [ 'steal' => true ] );
