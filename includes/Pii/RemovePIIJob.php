@@ -64,10 +64,7 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 		$services = MediaWikiServices::getInstance();
 		$userFactory = $services->getUserFactory();
 		$lbFactory = $services->getDBLoadBalancerFactory();
-
-		// The global account itself (its password, groups, email and lock) is erased once, by
-		// RemovePII::scrub(), because CentralAuth's database is shared by every wiki. This job
-		// only scrubs the local wiki it runs on.
+		
 		$oldUser = $userFactory->newFromName( $this->oldName );
 		$newUser = $userFactory->newFromName( $this->newName );
 
@@ -184,11 +181,6 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 					continue;
 				}
 
-				// Cancelable, so a failed statement unwinds to its own savepoint and leaves the
-				// transaction round usable. Without the savepoint the round is flagged as
-				// errored, and the rethrow below then reaches JobRunner as a round that can
-				// only fail to commit. This does not let the loop continue past a failure:
-				// the catch below still abandons the remaining operations.
 				try {
 					$dbw->doAtomicSection(
 						__METHOD__,
@@ -289,15 +281,6 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 		}
 	}
 
-	/**
-	 * Clear the email and real name from the local user row.
-	 *
-	 * Written directly because every User setter that touches the email fires a hook that
-	 * CentralAuth answers with a CAS-guarded write to the shared globaluser row: setEmail() and
-	 * invalidateEmail() both fire InvalidateEmailComplete and UserSetEmailAuthenticationTimestamp,
-	 * and saveSettings() fires UserSaveSettings. Those writes belong to
-	 * RemovePII::eraseGlobalAccount(), which runs once, and raced between wikis from here.
-	 */
 	private function eraseLocalAccount( IDatabase $dbw, User $user ): void {
 		$userId = $user->getId();
 
