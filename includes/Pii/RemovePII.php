@@ -20,6 +20,7 @@ class RemovePII {
 
 	private UserFactory $userFactory;
 	private PortalClient $portal;
+	private ?User $systemActor = null;
 
 	public function __construct( ?UserFactory $userFactory = null, ?PortalClient $portal = null ) {
 		$this->userFactory = $userFactory
@@ -161,15 +162,12 @@ class RemovePII {
 		$attached = $newCentral->listAttached();
 		$targets = $wikis === null ? $attached : array_values( array_intersect( $wikis, $attached ) );
 
-		// The global account lives in one shared database, so it is erased here, once. Doing it
-		// from the per-wiki jobs instead had every attached wiki write to the same globaluser row
-		// at the same time, and the losers of that race failed with
-		// "Record has changed since last read in table 'globaluser'".
 		$failure = $this->eraseGlobalAccount( $newCentral );
 
 		if ( $failure !== null ) {
 			return [ 'wikis' => [], 'retry' => true, 'error' => $failure ];
 		}
+		$this->actor();
 
 		$factory = MediaWikiServices::getInstance()->getJobQueueGroupFactory();
 
@@ -185,11 +183,6 @@ class RemovePII {
 	}
 
 	/**
-	 * Strip the global account's groups, scramble its password and lock it.
-	 *
-	 * Every step writes to CentralAuth's shared database and every step is safe to repeat,
-	 * so the whole task can be retried.
-	 *
 	 * @return string|null An error to report back, or null if the account was erased.
 	 */
 	private function eraseGlobalAccount( CentralAuthUser $central ): ?string {
@@ -260,7 +253,9 @@ class RemovePII {
 	}
 
 	private function actor(): User {
-		return User::newSystemUser( 'Trust and Safety', [ 'steal' => true ] )
+		$this->systemActor ??= User::newSystemUser( 'Trust and Safety', [ 'steal' => true ] )
 			?? User::newSystemUser( 'MediaWiki default', [ 'steal' => true ] );
+
+		return $this->systemActor;
 	}
 }
