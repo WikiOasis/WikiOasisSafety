@@ -37,11 +37,6 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 		try {
 			$this->erase();
 		} catch ( Throwable $e ) {
-			// A query that failed inside the transaction round leaves the connection in
-			// STATUS_TRX_ERROR. Returning false without rolling back lets JobRunner go on
-			// to commit that round, and the COMMIT itself then throws
-			// DBTransactionStateError, which replaces the real error in the logs with a
-			// useless one. Roll back here so the job reports the failure it actually hit.
 			try {
 				MediaWikiServices::getInstance()
 					->getDBLoadBalancerFactory()
@@ -73,9 +68,6 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 		$userFactory = $services->getUserFactory();
 		$lbFactory = $services->getDBLoadBalancerFactory();
 
-		// The global account itself (its password, groups and lock) is erased once, by
-		// RemovePII::scrub(), because CentralAuth's database is shared by every wiki. This job
-		// only scrubs the local wiki it runs on.
 		$oldUser = $userFactory->newFromName( $this->oldName );
 		$newUser = $userFactory->newFromName( $this->newName );
 
@@ -278,17 +270,6 @@ class RemovePIIJob extends Job implements GenericParameterJob {
 		}
 	}
 
-	/**
-	 * The system account these jobs act as.
-	 *
-	 * Deliberately does NOT pass 'steal'. Stealing calls
-	 * AuthManager::revokeAccessForUser(), which writes CentralAuth's globaluser row for
-	 * the system account - a single row in one database shared by every wiki. This job
-	 * runs once per attached wiki, so stealing from here had every job update that same
-	 * row at once and the losers failed with "Error 1020: Record has changed since last
-	 * read in table 'globaluser'", exactly as the target account's row used to.
-	 * RemovePII::scrub() claims the account, once, before these jobs are queued.
-	 */
 	private function systemActor(): User {
 		foreach ( [ 'Trust and Safety', 'MediaWiki default' ] as $name ) {
 			$actor = User::newSystemUser( $name );
